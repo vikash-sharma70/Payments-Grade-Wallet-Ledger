@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: wallet
+          POSTGRES_PASSWORD: wallet
+          POSTGRES_DB: wallet_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U wallet -d wallet_test"
+          --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      TEST_DATABASE_URL: postgres://wallet:wallet@localhost:5432/wallet_test
+      LLM_PROVIDER: mock
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # stampede (20 runs inside), idempotency, reconciliation, prompt injection, Q&A samples, schema constraints, sharding
+      - run: npm test
+
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: docker compose up starts db + migrate + api + worker
+        run: |
+          docker compose up --build -d
+          for i in $(seq 1 30); do curl -sf http://localhost:3000/health && break; sleep 2; done
+          curl -sf http://localhost:3000/health
+          docker compose ps
+      - name: tests inside compose
+        run: docker compose --profile test run --rm --build tests
+      - if: always()
+        run: docker compose logs --no-color | tail -100

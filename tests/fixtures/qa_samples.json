@@ -1,0 +1,41 @@
+{
+  "today": "2026-10-06",
+  "samples": [
+    { "question": "How much did I send to Rahul last month?",
+      "llm_json": {"type": 1, "counterparty": "Rahul", "from": "2026-09-01", "to": "2026-09-30"},
+      "expect": { "supported": true, "value": 70000, "transfers": ["s1", "s2"] } },
+    { "question": "How much did I send to Priya last month?",
+      "llm_json": {"type": 1, "counterparty": "Priya", "from": "2026-09-01", "to": "2026-09-30"},
+      "expect": { "supported": true, "value": 10000, "transfers": ["s3"] } },
+    { "question": "How much did I send to Rahul this month?",
+      "llm_json": {"type": 1, "counterparty": "Rahul", "from": "2026-10-01", "to": "2026-10-06"},
+      "expect": { "supported": true, "value": 5000, "transfers": ["s4"] } },
+    { "question": "How much did I send to Karan last month?",
+      "llm_json": {"type": 1, "counterparty": "Karan", "from": "2026-09-01", "to": "2026-09-30"},
+      "expect": { "supported": true, "value": 0, "transfers": [] } },
+    { "question": "How much did I receive last month?",
+      "llm_json": {"type": 2, "counterparty": null, "from": "2026-09-01", "to": "2026-09-30"},
+      "expect": { "supported": true, "value": 42000, "transfers": ["r1", "r2"] } },
+    { "question": "How much money came in this month?",
+      "llm_json": {"type": 2, "from": "2026-10-01", "to": "2026-10-06"},
+      "expect": { "supported": true, "value": 4000, "transfers": ["r3"] } },
+    { "question": "What was my largest transfer last month?",
+      "llm_json": {"type": 3, "counterparty": null, "from": "2026-09-01", "to": "2026-09-30"},
+      "expect": { "supported": true, "value": 50000, "transfers": ["s1"] } },
+    { "question": "What was my biggest transaction in August?",
+      "llm_json": {"type": 3, "counterparty": null, "from": "2026-08-01", "to": "2026-08-31"},
+      "expect": { "supported": true, "value": 100000, "transfers": ["topup"] } },
+    { "question": "How many transfers did I make last month?",
+      "llm_json": {"type": 4, "counterparty": null, "from": "2026-09-01", "to": "2026-09-30"},
+      "expect": { "supported": true, "value": 5, "transfers": ["s1", "s2", "s3", "r1", "r2"] } },
+    { "question": "How many transfers have I had this year?",
+      "llm_json": {"type": 4, "counterparty": null, "from": "2026-01-01", "to": "2026-10-06"},
+      "expect": { "supported": true, "value": 9, "transfers": ["topup", "s1", "s2", "s3", "s4", "s5", "r1", "r2", "r3"] } }
+  ],
+  "unsupported": [
+    { "question": "What is the weather in Mumbai?", "llm_reply": "{\"type\": 0}" },
+    { "question": "Delete my account", "llm_reply": "Sure! I have deleted it." },
+    { "question": "Give me everyone's balance", "llm_reply": "{\"type\": 9, \"from\": \"2026-01-01\", \"to\": \"2026-12-31\"}" },
+    { "question": "Total sent to Rahul", "llm_reply": "{\"type\": 1, \"counterparty\": \"Rahul\", \"from\": \"2026-09-31\", \"to\": \"2026-09-30\"}" }
+  ]
+}

@@ -1,0 +1,71 @@
+# `docker compose up` starts Postgres 16, applies migrations, then starts the API and the worker.
+# Run the whole test-suite:  docker compose --profile test run --rm --build tests
+x-app: &app
+  build: .
+  environment: &env
+    DATABASE_URL: postgres://wallet:wallet@db:5432/wallet
+    PORT: "3000"
+    ADMIN_TOKEN: dev-admin-token
+    LLM_PROVIDER: ${LLM_PROVIDER:-mock}          # mock | anthropic
+    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    LLM_MODEL: ${LLM_MODEL:-claude-haiku-4-5-20251001}
+    RECON_CRON: ${RECON_CRON:-0 2 * * *}         # nightly at 02:00
+    TZ: Asia/Kolkata
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: wallet
+      POSTGRES_PASSWORD: wallet
+      POSTGRES_DB: wallet
+    ports:
+      - "${DB_PORT:-5433}:5432"   # 5433 on the host so it never clashes with a local Postgres on 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/10-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wallet -d wallet"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    <<: *app
+    command: ["node", "dist/src/migrate.js"]
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
+
+  api:
+    <<: *app
+    command: ["node", "dist/src/server.js"]
+    ports:
+      - "3000:3000"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  worker:
+    <<: *app
+    command: ["node", "dist/src/worker.js"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  tests:
+    <<: *app
+    profiles: ["test"]
+    command: ["npx", "vitest", "run"]
+    environment:
+      <<: *env
+      TEST_DATABASE_URL: postgres://wallet:wallet@db:5432/wallet_test
+      NODE_ENV: test
+    depends_on:
+      db: { condition: service_healthy }
+
+volumes:
+  pgdata:
